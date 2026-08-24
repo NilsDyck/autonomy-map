@@ -1,6 +1,3 @@
-Hier ist deine überarbeitete, sauber strukturierte und typografisch aufbereitete **`README.md`** (inklusive vervollständigtem Installationsabschnitt, Badges und modernen Formatierungen):
-
-```markdown
 # 🧭 Autonomy Map – Kollaboratives Tool für den Informatikunterricht
 
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
@@ -106,7 +103,3 @@ Inselplatz 5
 **Kontaktmöglichkeiten:**  
 * 📧 **E-Mail:** [nils.dyck@uni-jena.de]    
 * 🐙 **GitHub:** [https://github.com/NilsDyck](https://github.com/NilsDyck)
-
----
-*Lizenz: [MIT License](LICENSE)*
-```
