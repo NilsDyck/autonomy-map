@@ -1,383 +1,72 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Autonomy Map — Entscheidungen, Akteure und Handlungsspielräume sichtbar machen." />
   <title>Autonomy Map</title>
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    @media print {
-      body { background: white !important; }
-      .no-print { display: none !important; }
-      .print-border { border: 1px solid #cbd5e1 !important; }
-    }
+    :root{--ink:#18211f;--muted:#687570;--paper:#f6f5ef;--panel:#fffef9;--line:#dce2d9;--moss:#315c4b;--moss-dark:#214437;--lime:#d8ef96;--coral:#df715a;--amber:#e3aa3d;--blue:#4f7f91;--shadow:0 12px 36px rgba(27,53,41,.08)}
+    *{box-sizing:border-box} html{scroll-behavior:smooth} body{margin:0;background:radial-gradient(circle at 90% 5%,#e9f3d0 0,transparent 28rem),linear-gradient(135deg,#f7f5ee 0%,#eef2e8 100%);color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.45} button,input,textarea{font:inherit} button{cursor:pointer}
+    .shell{width:100%;max-width:100%;padding:28px clamp(18px,4vw,64px) 56px}.topbar{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:42px}.brand{display:flex;align-items:center;gap:12px;font-family:Georgia,serif;font-size:21px;font-weight:700;letter-spacing:-.02em}.brand-mark{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:var(--moss);color:var(--lime);font-size:19px;box-shadow:0 5px 0 #19372d}.actions{display:flex;flex-wrap:wrap;gap:9px}.btn{border:1px solid var(--line);background:rgba(255,255,255,.68);color:var(--moss-dark);border-radius:999px;padding:9px 14px;font-size:13px;font-weight:750;transition:.18s ease;box-shadow:0 2px 5px rgba(0,0,0,.02)}.btn:hover{transform:translateY(-1px);border-color:#a8bbb0;box-shadow:var(--shadow)}.btn.primary{background:var(--moss);color:#fff;border-color:var(--moss)}.btn.danger{color:#9c4037}.btn.small{padding:6px 10px;font-size:12px}.btn.icon{width:34px;height:34px;padding:0;border-radius:10px;font-size:16px}
+    .hero{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,.6fr);gap:32px;align-items:end;margin-bottom:34px}.eyebrow{text-transform:uppercase;letter-spacing:.18em;color:var(--coral);font-size:11px;font-weight:850;margin:0 0 11px}.hero h1{font:700 clamp(42px,6vw,84px)/.93 Georgia,serif;letter-spacing:-.06em;margin:0;max-width:850px}.hero h1 em{color:var(--moss);font-style:normal}.hero p{color:var(--muted);font-size:15px;max-width:700px;margin:18px 0 0}.hero-note{border-left:3px solid var(--amber);padding:12px 0 12px 16px;color:var(--muted);font-size:13px}.hero-note strong{display:block;color:var(--ink);font-size:14px;margin-bottom:5px}
+    .map-card{background:rgba(255,254,249,.88);border:1px solid rgba(205,216,204,.9);border-radius:24px;box-shadow:var(--shadow);overflow:hidden}.map-head{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:22px 24px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,rgba(216,239,150,.27),transparent)}.map-head h2{font:700 24px Georgia,serif;margin:0}.map-head p{color:var(--muted);font-size:12px;margin:4px 0 0}.map-scroll{overflow-x:auto}.map{min-width:900px;display:grid;grid-template-columns:220px repeat(var(--option-count),minmax(220px,1fr))}.corner,.option-head,.actor-head,.cell{border-right:1px solid var(--line);border-bottom:1px solid var(--line)}.corner{padding:18px 18px;background:#f1f4ed;display:flex;align-items:end;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.13em;font-weight:800}.option-head{padding:19px 18px 16px;position:relative;min-height:126px;background:#fbfcf7}.option-head:hover{background:#f5f9ec}.option-kicker{display:flex;justify-content:space-between;align-items:center;color:var(--coral);font-size:10px;text-transform:uppercase;letter-spacing:.12em;font-weight:850}.option-title{font:700 20px/1.05 Georgia,serif;letter-spacing:-.02em;margin:17px 0 6px}.option-desc{color:var(--muted);font-size:12px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.option-tools{position:absolute;right:12px;bottom:11px;display:flex;gap:5px}.actor-head{padding:16px 15px;background:#f7f8f3;min-height:146px}.actor-main{display:flex;align-items:start;gap:9px}.actor-avatar{width:33px;height:33px;flex:0 0 33px;display:grid;place-items:center;border-radius:11px;background:var(--moss);color:#fff;font-weight:800;font-size:12px}.actor-name{font:700 17px/1.1 Georgia,serif;margin:1px 0 7px}.value-tags{display:flex;flex-wrap:wrap;gap:4px}.tag{font-size:10px;padding:3px 6px;border-radius:999px;background:#e4efc4;color:var(--moss-dark);font-weight:750}.complete{display:inline-flex;align-items:center;gap:4px;margin-top:12px;font-size:10px;font-weight:800;padding:4px 7px;border-radius:999px}.complete.yes{background:#e0f2dd;color:#267040}.complete.no{background:#fff0dc;color:#9b621c}.actor-actions{float:right;display:flex;gap:4px}.cell{min-height:146px;padding:13px 14px;background:rgba(255,255,255,.42);position:relative}.cell:hover{background:#fffef7}.cell ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}.cell li{display:flex;gap:7px;align-items:flex-start;color:#3c4b46;font-size:12px}.signal{width:18px;min-width:18px;height:18px;display:grid;place-items:center;border-radius:6px;font-weight:900;font-size:11px}.signal.plus{background:#dff2cf;color:#307146}.signal.minus{background:#fae0db;color:#a44337}.signal.warn{background:#fff0c7;color:#a16c0b}.cycle{position:absolute;right:10px;bottom:9px;color:var(--blue);font-size:17px}.cell-edit{position:absolute;right:9px;top:9px;opacity:0}.cell:hover .cell-edit{opacity:1}.add-row{display:flex;gap:10px;align-items:center;padding:14px 18px;background:#fafbf6;border-bottom:1px solid var(--line)}.add-row .btn{background:transparent}
+    .judgement{margin-top:27px;padding:23px 25px;border:1px solid #cddcaa;background:linear-gradient(135deg,#f0f7da,#fffdf5);border-radius:20px;display:flex;gap:18px;align-items:flex-start}.judgement-icon{font-size:25px}.judgement h3{font:700 20px Georgia,serif;margin:0 0 4px}.judgement p{margin:0;color:var(--muted);font-size:13px}.judgement textarea{width:100%;border:1px solid #d1dcc0;background:rgba(255,255,255,.7);border-radius:12px;padding:10px 12px;margin-top:12px;min-height:65px;resize:vertical;color:var(--ink)}
+    .footer{display:flex;justify-content:space-between;gap:15px;margin-top:20px;color:var(--muted);font-size:11px}.modal-backdrop{position:fixed;inset:0;background:rgba(21,37,31,.46);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;padding:18px;z-index:20}.modal-backdrop.open{display:flex}.modal{width:min(620px,100%);max-height:min(740px,90vh);overflow:auto;background:var(--panel);border:1px solid #d1ddd0;border-radius:22px;box-shadow:0 25px 80px rgba(17,38,28,.25);animation:rise .2s ease}.modal-head{display:flex;justify-content:space-between;gap:15px;padding:22px 23px 14px;border-bottom:1px solid var(--line)}.modal-head h2{font:700 24px Georgia,serif;margin:0}.modal-body{padding:20px 23px}.field{display:grid;gap:7px;margin-bottom:16px}.field label{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:850}.field input,.field textarea{width:100%;border:1px solid var(--line);border-radius:11px;background:#fafcf7;padding:11px 12px;color:var(--ink);outline:none}.field input:focus,.field textarea:focus{border-color:var(--moss);box-shadow:0 0 0 3px rgba(49,92,75,.1)}.modal-foot{display:flex;justify-content:flex-end;gap:9px;padding:14px 23px 21px}.perspective{display:grid;gap:13px}.perspective-card{padding:14px;background:#f4f7ed;border-radius:13px}.perspective-card b{font:700 16px Georgia,serif;display:block;margin-bottom:4px}.perspective-card p{margin:0;color:var(--muted);font-size:13px;white-space:pre-wrap}.empty{color:var(--muted);font-size:12px;font-style:italic;padding:8px 0}@keyframes rise{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}@media(max-width:760px){.topbar,.hero{align-items:flex-start;flex-direction:column}.hero{display:flex}.hero-note{width:100%}.map-head{align-items:flex-start;flex-direction:column}.judgement{flex-direction:column}}
+    @media print{body{background:#fff}.shell{padding:0}.topbar,.actions,.map-head .btn,.option-tools,.actor-actions,.cell-edit,.add-row,.footer{display:none!important}.map-card{box-shadow:none;border:1px solid #bbb}.map-scroll{overflow:visible}.map{min-width:0;grid-template-columns:150px repeat(var(--option-count),1fr)}.cell,.actor-head,.option-head{min-height:100px;padding:7px}.cell li,.option-desc{font-size:9px}.option-title{font-size:13px;margin-top:7px}.actor-name{font-size:12px}.judgement{break-inside:avoid}.hero h1{font-size:38px}}
   </style>
 </head>
-<body class="bg-slate-50 min-h-screen text-slate-800 font-sans pb-16">
-  <div id="app" class="max-w-7xl mx-auto p-4 md:p-6">
-
-    <!-- LOBBY / RAUM-EINGABE -->
-    <div v-if="!currentRoom" class="max-w-md mx-auto mt-20 bg-white p-8 rounded-2xl shadow-xl border border-slate-100">
-      <h1 class="text-3xl font-bold text-center text-slate-800 mb-2">🧭 Autonomy Map</h1>
-      <p class="text-slate-500 text-sm text-center mb-6">Kollaborative Entscheidungsmatrix</p>
-      
-      <div class="space-y-4">
-        <div>
-          <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Raum-Code</label>
-          <input v-model="roomInput" @keyup.enter="joinRoom(roomInput)" type="text" placeholder="z. B. MAP-123" class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none uppercase font-mono text-center tracking-widest text-lg font-bold">
-        </div>
-        <button @click="joinRoom(roomInput)" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-lg transition shadow-md">Raum betreten</button>
-        <button @click="createRandomRoom" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-3 rounded-lg transition">Zufälligen Raum erstellen</button>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">⌁</span><span>Autonomy Map</span></div>
+      <div class="actions" aria-label="Datenfunktionen">
+        <button class="btn" id="backupBtn">↓ JSON Backup</button>
+        <button class="btn" id="restoreBtn">↑ JSON Restore</button><input id="restoreInput" type="file" accept="application/json,.json" hidden />
+        <button class="btn" id="markdownBtn">↓ Markdown Export</button>
+        <button class="btn primary" id="printBtn">⎙ PDF Export</button>
       </div>
-    </div>
-
-    <!-- HAUPTANSICHT DER MAP -->
-    <div v-else class="space-y-6">
-      
-      <!-- TOP-BAR (im Druck ausgeblendet) -->
-      <header class="flex flex-wrap items-center justify-between bg-white p-4 rounded-xl shadow-sm border border-slate-200 gap-4 no-print">
-        <div>
-          <h1 class="text-2xl font-bold flex items-center gap-2">
-            🧭 Autonomy Map <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-mono font-normal">Raum: {{ currentRoom }}</span>
-          </h1>
-          <p class="text-xs text-slate-500 mt-1">Änderungen werden live synchronisiert.</p>
-        </div>
-
-        <!-- EXPORT & IMPORT BUTTONS -->
-        <div class="flex flex-wrap items-center gap-2">
-          <!-- Backup Import (JSON) -->
-          <label class="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-3 py-2 rounded-lg font-medium transition flex items-center gap-1 border border-slate-300">
-            📂 Backup laden (JSON)
-            <input type="file" accept=".json" class="hidden" @change="importJsonBackup">
-          </label>
-
-          <!-- Backup Export (JSON) -->
-          <button @click="exportJsonBackup" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-3 py-2 rounded-lg font-medium transition flex items-center gap-1 border border-slate-300">
-            💾 Backup speichern (JSON)
-          </button>
-
-          <!-- Markdown Export -->
-          <button @click="exportMarkdown" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-3 py-2 rounded-lg font-medium transition flex items-center gap-1 border border-slate-300">
-            📝 Markdown
-          </button>
-
-          <!-- PDF Export -->
-          <button @click="exportPDF" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-2 rounded-lg font-medium transition flex items-center gap-1 shadow-sm">
-            🖨️ PDF / Drucken
-          </button>
-
-          <button @click="leaveRoom" class="text-xs text-red-600 hover:underline ml-2">Verlassen</button>
-        </div>
-      </header>
-
-      <!-- MATRIX-TABELLE -->
-      <div class="overflow-x-auto bg-white rounded-xl shadow-sm border border-slate-200 p-4 print-border">
-        <table class="w-full border-collapse">
-          <thead>
-            <tr>
-              <th class="p-3 bg-slate-50 border border-slate-200 text-left w-64">
-                <div class="font-bold text-slate-700 text-sm">Optionen & Akteure</div>
-              </th>
-              
-              <!-- Akteurs-Köpfe -->
-              <th v-for="(actor, aIdx) in mapData.actors" :key="aIdx" class="p-3 bg-slate-50 border border-slate-200 text-left min-w-[240px] align-top">
-                <div class="flex items-center justify-between mb-2">
-                  <input v-model="actor.name" @input="sync" placeholder="Akteur..." class="font-bold text-slate-800 bg-transparent border-b border-transparent focus:border-indigo-500 outline-none w-full text-sm">
-                  <button @click="removeActor(aIdx)" class="text-slate-400 hover:text-red-500 text-xs no-print ml-1">✕</button>
-                </div>
-                
-                <input v-model="actor.perspective" @input="sync" placeholder="Perspektive..." class="text-xs w-full mb-1 px-1.5 py-0.5 border rounded border-slate-200">
-                <input v-model="actor.scope" @input="sync" placeholder="Handlungsspielraum..." class="text-xs w-full mb-2 px-1.5 py-0.5 border rounded border-slate-200">
-
-                <!-- Werte / Tags -->
-                <div class="flex flex-wrap gap-1 items-center">
-                  <span v-for="(val, vIdx) in actor.values" :key="vIdx" class="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded flex items-center gap-1">
-                    {{ val }}
-                    <button @click="removeValue(actor, vIdx)" class="no-print hover:text-red-600">×</button>
-                  </span>
-                  <input @keyup.enter="addValue(actor, $event)" placeholder="+ Wert" class="text-[10px] border border-dashed border-slate-300 rounded px-1.5 py-0.5 w-16 outline-none no-print">
-                </div>
-              </th>
-
-              <!-- Akteur hinzufügen Spalte (im Druck unsichtbar) -->
-              <th class="p-3 bg-slate-50 border border-slate-200 text-center w-12 no-print">
-                <button @click="addActor" class="text-indigo-600 hover:bg-indigo-50 w-8 h-8 rounded-full border border-indigo-200 font-bold">+</button>
-              </th>
-            </tr>
-          </thead>
-
-          <tbody>
-            <!-- Optionen-Zeilen -->
-            <tr v-for="(opt, oIdx) in mapData.options" :key="oIdx">
-              <td class="p-3 border border-slate-200 bg-slate-50/50 align-top">
-                <div class="flex items-center justify-between mb-1">
-                  <input v-model="opt.title" @input="sync" placeholder="Option..." class="font-bold text-sm text-slate-800 bg-transparent border-b border-transparent focus:border-indigo-500 outline-none w-full">
-                  <button @click="removeOption(oIdx)" class="text-slate-400 hover:text-red-500 text-xs no-print ml-1">✕</button>
-                </div>
-                <textarea v-model="opt.description" @input="sync" placeholder="Umsetzungsdetails..." class="text-xs w-full p-1.5 border border-slate-200 rounded resize-y min-h-[50px] outline-none"></textarea>
-              </td>
-
-              <!-- Zellen (Bewertungskriterien) -->
-              <td v-for="(actor, aIdx) in mapData.actors" :key="aIdx" class="p-2 border border-slate-200 align-top bg-white">
-                <div class="space-y-1.5">
-                  <div v-for="(item, iIdx) in getCellItems(opt.id, actor.id)" :key="iIdx" class="flex items-start gap-1 group">
-                    <button @click="cycleSymbol(item)" class="text-xs font-bold px-1.5 py-0.5 rounded transition shrink-0"
-                      :class="{
-                        'bg-emerald-100 text-emerald-800': item.symbol === '+',
-                        'bg-amber-100 text-amber-800': item.symbol === '-',
-                        'bg-red-100 text-red-800': item.symbol === '!'
-                      }">
-                      {{ item.symbol }}
-                    </button>
-                    <input v-model="item.text" @input="sync" placeholder="Argument..." class="text-xs w-full border-b border-transparent focus:border-slate-300 outline-none px-1">
-                    <button @click="removeItem(opt.id, actor.id, iIdx)" class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 text-xs no-print">×</button>
-                  </div>
-                  <button @click="addItem(opt.id, actor.id)" class="text-[11px] text-slate-400 hover:text-indigo-600 no-print block pt-1">+ Argument</button>
-                </div>
-              </td>
-
-              <td class="border border-slate-200 bg-slate-50/50 no-print"></td>
-            </tr>
-
-            <!-- Option hinzufügen Zeile -->
-            <tr class="no-print">
-              <td :colspan="mapData.actors.length + 2" class="p-2 bg-slate-50 border border-slate-200 text-center">
-                <button @click="addOption" class="text-indigo-600 hover:underline text-xs font-semibold">+ Neue Option hinzufügen</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- ABSCHLIESSENDES URTEIL -->
-      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 print-border">
-        <h2 class="text-base font-bold text-slate-800 mb-2">⚖️ Abschließendes Urteil / Güterabwägung</h2>
-        <textarea v-model="mapData.judgement" @input="sync" placeholder="Formuliere hier das begründete Urteil..." class="w-full p-3 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500 min-h-[100px]"></textarea>
-      </div>
-
-    </div>
-  </div>
-
-  <script>
-    const { createApp, ref } = Vue;
-
-    createApp({
-      setup() {
-        const currentRoom = ref('');
-        const roomInput = ref('');
-        let socket = null;
-
-        const defaultData = () => ({
-          options: [{ id: 'opt_1', title: 'Option A', description: 'Beispieloption...' }],
-          actors: [{ id: 'act_1', name: 'Nutzer:innen', perspective: 'Datensouveränität', scope: 'Nutzungsverhalten', values: ['Privatsphäre'] }],
-          matrix: {}, // key: "optId_actorId", value: [{symbol: '+', text: '...'}]
-          judgement: ''
-        });
-
-        const mapData = ref(defaultData());
-
-        const joinRoom = (room) => {
-          if (!room) return;
-          currentRoom.value = room.toUpperCase().trim();
-          
-          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-          socket = new WebSocket(`${protocol}//${window.location.host}/ws/${currentRoom.value}`);
-
-          socket.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (data && data.options) {
-              mapData.value = data;
-            }
-          };
-        };
-
-        const createRandomRoom = () => {
-          const rand = 'MAP-' + Math.floor(1000 + Math.random() * 9000);
-          joinRoom(rand);
-        };
-
-        const sync = () => {
-          if (socket && socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify(mapData.value));
-          }
-        };
-
-        const leaveRoom = () => {
-          if (socket) socket.close();
-          currentRoom.value = '';
-          mapData.value = defaultData();
-        };
-
-        // MATRIX-HELPER
-        const getCellItems = (optId, actId) => {
-          const key = `${optId}_${actId}`;
-          if (!mapData.value.matrix[key]) {
-            mapData.value.matrix[key] = [];
-          }
-          return mapData.value.matrix[key];
-        };
-
-        const addItem = (optId, actId) => {
-          const items = getCellItems(optId, actId);
-          items.push({ symbol: '+', text: '' });
-          sync();
-        };
-
-        const removeItem = (optId, actId, idx) => {
-          getCellItems(optId, actId).splice(idx, 1);
-          sync();
-        };
-
-        const cycleSymbol = (item) => {
-          const syms = ['+', '-', '!'];
-          let nextIdx = (syms.indexOf(item.symbol) + 1) % syms.length;
-          item.symbol = syms[nextIdx];
-          sync();
-        };
-
-        const addOption = () => {
-          mapData.value.options.push({ id: 'opt_' + Date.now(), title: 'Neue Option', description: '' });
-          sync();
-        };
-
-        const removeOption = (idx) => {
-          mapData.value.options.splice(idx, 1);
-          sync();
-        };
-
-        const addActor = () => {
-          mapData.value.actors.push({ id: 'act_' + Date.now(), name: 'Neuer Akteur', perspective: '', scope: '', values: [] });
-          sync();
-        };
-
-        const removeActor = (idx) => {
-          mapData.value.actors.splice(idx, 1);
-          sync();
-        };
-
-        const addValue = (actor, evt) => {
-          const val = evt.target.value.trim();
-          if (val) {
-            actor.values.push(val);
-            evt.target.value = '';
-            sync();
-          }
-        };
-
-        const removeValue = (actor, idx) => {
-          actor.values.splice(idx, 1);
-          sync();
-        };
-
-        // --- EXPORT & IMPORT FUNKTIONEN ---
-
-        // 1. JSON-Backup exportieren
-        const exportJsonBackup = () => {
-          const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(mapData.value, null, 2));
-          const dlAnchorElem = document.createElement('a');
-          dlAnchorElem.setAttribute("href", dataStr);
-          dlAnchorElem.setAttribute("download", `autonomy_map_${currentRoom.value}.json`);
-          dlAnchorElem.click();
-        };
-
-        // 2. JSON-Backup importieren
-        const importJsonBackup = (event) => {
-          const file = event.target.files[0];
-          if (!file) return;
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            try {
-              const imported = JSON.parse(e.target.result);
-              if (imported.options && imported.actors) {
-                mapData.value = imported;
-                sync();
-                alert('Backup erfolgreich wiederhergestellt!');
-              } else {
-                alert('Ungültige Autonomy-Map-Datei.');
-              }
-            } catch (err) {
-              alert('Fehler beim Lesen der Datei.');
-            }
-          };
-          reader.readAsText(file);
-          event.target.value = ''; // Reset file input
-        };
-
-        // 3. Markdown Export
-        const exportMarkdown = () => {
-          let md = `# 🧭 Autonomy Map (Raum: ${currentRoom.value})\n\n`;
-
-          md += `## 👥 Akteure\n`;
-          mapData.value.actors.forEach(a => {
-            md += `* **${a.name || 'Unbenannt'}**\n`;
-            md += `  * Perspektive: ${a.perspective || '-'}\n`;
-            md += `  * Handlungsspielraum: ${a.scope || '-'}\n`;
-            md += `  * Werte: ${a.values.join(', ') || '-'}\n`;
-          });
-          md += `\n---\n\n`;
-
-          md += `## 📊 Bewertungsmatrix\n\n`;
-          mapData.value.options.forEach(opt => {
-            md += `### Option: ${opt.title || 'Unbenannt'}\n`;
-            if (opt.description) md += `*Beschreibung: ${opt.description}*\n\n`;
-
-            mapData.value.actors.forEach(a => {
-              const items = getCellItems(opt.id, a.id);
-              md += `#### Akteur: ${a.name || 'Unbenannt'}\n`;
-              if (items.length === 0) {
-                md += `* *Keine Kriterien eingetragen*\n`;
-              } else {
-                items.forEach(it => {
-                  const label = it.symbol === '+' ? '[+] Chance' : it.symbol === '-' ? '[-] Risiko' : '[!] Veto';
-                  md += `* **${label}:** ${it.text}\n`;
-                });
-              }
-              md += `\n`;
-            });
-            md += `---\n\n`;
-          });
-
-          md += `## ⚖️ Abschließendes Urteil\n\n`;
-          md += `${mapData.value.judgement || '*Noch kein Urteil formuliert.*'}\n`;
-
-          const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
-          const dlAnchorElem = document.createElement('a');
-          dlAnchorElem.setAttribute("href", URL.createObjectURL(blob));
-          dlAnchorElem.setAttribute("download", `autonomy_map_${currentRoom.value}.md`);
-          dlAnchorElem.click();
-        };
-
-        // 4. PDF Druck
-        const exportPDF = () => {
-          window.print();
-        };
-
-        return {
-          currentRoom,
-          roomInput,
-          mapData,
-          joinRoom,
-          createRandomRoom,
-          leaveRoom,
-          sync,
-          getCellItems,
-          addItem,
-          removeItem,
-          cycleSymbol,
-          addOption,
-          removeOption,
-          addActor,
-          removeActor,
-          addValue,
-          removeValue,
-          exportJsonBackup,
-          importJsonBackup,
-          exportMarkdown,
-          exportPDF
-        };
-      }
-    }).mount('#app');
-  </script>
-</body>
-</html>
+    </header>
+    <section class="hero"><div><p class="eyebrow">Entscheidungsarchitektur · Arbeitsfläche</p><h1>Wer kann <em>was</em><br>bewegen?</h1><p>Ordne Optionen, Werte und Handlungsspielräume in einer gemeinsamen Sicht. Klicke auf einen Titel oder eine Person, um Kontext zu öffnen.</p></div><aside class="hero-note"><strong>Arbeitsprinzip</strong>Die Matrix hält Unterschiede aus: positive, negative und ambivalente Punkte dürfen nebeneinander stehen.</aside></section>
+    <section class="map-card" aria-labelledby="map-title"><div class="map-head"><div><h2 id="map-title">Entscheidungslandkarte</h2><p id="mapMeta">Lade Karte …</p></div><button class="btn small" id="resetBtn">↺ Beispielkarte laden</button></div><div class="map-scroll"><div class="map" id="map" style="--option-count:3"></div></div><div class="add-row"><button class="btn small" id="addActorBtn">＋ Akteur hinzufügen</button><span class="empty">Zellen per Klick auf „+“ ergänzen</span></div></section>
+    <section class="judgement"><div class="judgement-icon">✦</div><div style="flex:1"><h3>Vorläufiges Urteil</h3><p>Was wird durch die aktuelle Anordnung sichtbar? Halte die nächste Frage oder Entscheidung fest.</p><textarea id="judgement" placeholder="Notiz zum Urteil …"></textarea></div></section>
+    <footer class="footer"><span>Autonomy Map · lokal im Browser</span><span id="savedState">Änderungen werden automatisch gespeichert</span></footer>
+  </main>
+  <div class="modal-backdrop" id="modalBackdrop" role="presentation"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-head"><h2 id="modalTitle">Details</h2><button class="btn icon" id="closeModal" aria-label="Dialog schließen">×</button></div><div class="modal-body" id="modalBody"></div><div class="modal-foot" id="modalFoot"></div></section></div>
+<script>
+(() => {
+  const KEY='autonomy-map-data-v1';
+  const sample={
+    title:'Entscheidungslandkarte',
+    options:[
+      {id:'o1',title:'Gemeinsam handeln',description:'Ressourcen bündeln und Verantwortung teilen.'},
+      {id:'o2',title:'Kurs halten',description:'Den bestehenden Weg konsequent fortsetzen.'},
+      {id:'o3',title:'Raum öffnen',description:'Neue Stimmen und Alternativen einladen.'}
+    ],
+    actors:[
+      {id:'a1',name:'Mira',values:['Fürsorge','Mut'],perspective:'Mira möchte, dass niemand zurückbleibt.',agency:'Sie kann Allianzen bilden und den Gesprächsrahmen verändern.',cells:{o1:[['+','Gemeinsame Verantwortung'],['!','Mehr Abstimmung nötig']],o2:[['-','Gefühl von Stillstand']],o3:[['+','Neue Perspektiven'],['+','Leise Stimmen hörbar']] }},
+      {id:'a2',name:'Jonas',values:['Klarheit','Tempo'],perspective:'Jonas sucht eine klare Richtung mit sichtbarem Fortschritt.',agency:'Er kann Entscheidungen vorbereiten und Ressourcen priorisieren.',cells:{o1:[['+','Last wird verteilt'],['-','Prozess dauert länger']],o2:[['+','Schnelle Umsetzung'],['!','Risiko blinder Flecken']],o3:[['-','Weniger Vorhersagbarkeit']] }},
+      {id:'a3',name:'Nachbarschaft',values:['Nähe','Vertrauen'],perspective:'Die Nachbarschaft erlebt die Folgen direkt im Alltag.',agency:'Sie kann Erfahrungen beisteuern, Öffentlichkeit herstellen und Feedback geben.',cells:{o1:[['+','Stärkere Verbindung']],o2:[['!','Bedürfnisse bleiben unsichtbar']],o3:[['+','Mitgestaltung möglich'],['+','Vertrauen wächst']] }}
+    ],
+    judgement:''
+  };
+  let data=load(); let modalState=null;
+  const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const uid=p=>p+Math.random().toString(36).slice(2,9);
+  function load(){try{const x=JSON.parse(localStorage.getItem(KEY));return normalize(x||sample)}catch{return normalize(sample)}}
+  function normalize(x){if(!x||!Array.isArray(x.options)||!Array.isArray(x.actors))return JSON.parse(JSON.stringify(sample)); x.options=x.options.map(o=>({id:o.id||uid('o'),title:o.title||'Neue Option',description:o.description||''})); x.actors=x.actors.map(a=>({id:a.id||uid('a'),name:a.name||'Neuer Akteur',values:Array.isArray(a.values)?a.values:[],perspective:a.perspective||'',agency:a.agency||'',cells:a.cells&&typeof a.cells==='object'?a.cells:{}}));x.judgement=x.judgement||'';return x}
+  function save(){localStorage.setItem(KEY,JSON.stringify(data));$('#savedState').textContent='Gerade gespeichert · '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});}
+  function render(){const map=$('#map');map.style.setProperty('--option-count',data.options.length);$('#mapMeta').textContent=data.actors.length+' Akteure · '+data.options.length+' Optionen · klickbare Kontextkarten';let html='<div class="corner">Akteure / Optionen</div>';data.options.forEach((o,i)=>{html+=`<div class="option-head"><div class="option-kicker"><span>Option ${String(i+1).padStart(2,'0')}</span><span>↗</span></div><div class="option-title">${esc(o.title)}</div><div class="option-desc">${esc(o.description)||'<span class="empty">Beschreibung ergänzen</span>'}</div><div class="option-tools"><button class="btn icon small" data-edit-option="${o.id}" title="Option bearbeiten">✎</button><button class="btn icon small danger" data-delete-option="${o.id}" title="Option löschen">⌫</button></div></div>`});data.actors.forEach(a=>{const filled=a.name&&a.values.length&&a.perspective&&a.agency;html+=`<div class="actor-head"><div class="actor-actions"><button class="btn icon small" data-edit-actor="${a.id}" title="Akteur und Perspektive öffnen">ⓘ</button><button class="btn icon small danger" data-delete-actor="${a.id}" title="Akteur löschen">⌫</button></div><div class="actor-main"><div class="actor-avatar">${esc(a.name.slice(0,2).toUpperCase())}</div><div><div class="actor-name">${esc(a.name)}</div><div class="value-tags">${a.values.map(v=>`<span class="tag">${esc(v)}</span>`).join('')||'<span class="empty">Werte ergänzen</span>'}</div></div></div><span class="complete ${filled?'yes':'no'}">${filled?'ℹ️ Info vollständig':'⚠️ Info unvollständig'}</span></div>`;data.options.forEach(o=>{const items=Array.isArray(a.cells[o.id])?a.cells[o.id]:[];html+=`<div class="cell"><button class="btn icon small cell-edit" data-edit-cell="${a.id}|${o.id}" title="Zelle bearbeiten">✎</button>${items.length?'<ul>'+items.map((it,j)=>`<li><span class="signal ${it[0]==='+'?'plus':it[0]==='-'?'minus':'warn'}">${esc(it[0])}</span><span>${esc(it[1])}</span><button class="btn icon small" style="margin-left:auto;width:22px;height:22px;font-size:11px" data-delete-item="${a.id}|${o.id}|${j}" title="Punkt löschen">×</button></li>`).join('')+'</ul>':'<div class="empty">Noch kein Punkt</div>'}<span class="cycle" title="Zyklus / Wechselwirkung">↻</span></div>`})});map.innerHTML=html;$('#judgement').value=data.judgement;save()}
+  function openModal(title,body,foot=''){modalState={title,body,foot};$('#modalTitle').textContent=title;$('#modalBody').innerHTML=body;$('#modalFoot').innerHTML=foot;$('#modalBackdrop').classList.add('open');setTimeout(()=>$('#modalBody input, #modalBody textarea')?.focus(),20)}
+  function closeModal(){$('#modalBackdrop').classList.remove('open');modalState=null}
+  function editOption(id){const o=data.options.find(x=>x.id===id);openModal('Option bearbeiten',`<div class="field"><label for="fTitle">Titel</label><input id="fTitle" value="${esc(o.title)}" maxlength="90"></div><div class="field"><label for="fDesc">Beschreibung</label><textarea id="fDesc" rows="5" placeholder="Was macht diese Option aus?">${esc(o.description)}</textarea></div>`,`<button class="btn" data-close>Abbrechen</button><button class="btn primary" data-save-option="${id}">Speichern</button>`)}
+  function editActor(id){const a=data.actors.find(x=>x.id===id);openModal('Akteur & Handlungsspielraum',`<div class="field"><label for="fName">Akteurname</label><input id="fName" value="${esc(a.name)}"></div><div class="field"><label for="fValues">Werte · kommagetrennt</label><input id="fValues" value="${esc(a.values.join(', '))}" placeholder="z. B. Fürsorge, Klarheit"></div><div class="perspective"><div class="perspective-card"><b>Perspektive</b><p>${esc(a.perspective)||'Noch nicht beschrieben.'}</p></div><div class="perspective-card"><b>Handlungsspielraum</b><p>${esc(a.agency)||'Noch nicht beschrieben.'}</p></div></div><div class="field" style="margin-top:16px"><label for="fPerspective">Perspektive bearbeiten</label><textarea id="fPerspective" rows="3">${esc(a.perspective)}</textarea></div><div class="field"><label for="fAgency">Handlungsspielraum bearbeiten</label><textarea id="fAgency" rows="3">${esc(a.agency)}</textarea></div>`,`<button class="btn" data-close>Abbrechen</button><button class="btn primary" data-save-actor="${id}">Speichern</button>`)}
+  function editCell(key){const [aid,oid]=key.split('|'),a=data.actors.find(x=>x.id===aid),items=a.cells[oid]||[];openModal('Zelle bearbeiten',`<p style="color:var(--muted);font-size:13px;margin-top:0">Mehrere Punkte sind möglich. Ein Zeichen am Anfang markiert die Tonalität: <b>+</b> positiv, <b>-</b> kritisch, <b>!</b> ambivalent.</p><div class="field"><label for="fItems">Punkte · ein Punkt pro Zeile</label><textarea id="fItems" rows="8">${esc(items.map(x=>x[0]+' '+x[1]).join('\n'))}</textarea></div>`,`<button class="btn" data-close>Abbrechen</button><button class="btn primary" data-save-cell="${key}">Speichern</button>`)}
+  function download(name,text,type){const b=new Blob([text],{type}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),500)}
+  function markdown(){let out='# '+data.title+'\n\n';out+='| Akteur | Werte | '+data.options.map(o=>o.title.replace(/\|/g,'/')).join(' | ')+' |\n|---|---|'+data.options.map(()=> '---').join('|')+'|\n';data.actors.forEach(a=>{out+='| '+a.name+' | '+a.values.join(', ')+' | '+data.options.map(o=>(a.cells[o.id]||[]).map(x=>x[0]+' '+x[1]).join('<br>')).join(' | ')+' |\n'});out+='\n## Vorläufiges Urteil\n\n'+(data.judgement||'');download('autonomy-map.md',out,'text/markdown;charset=utf-8')}
+  document.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;if(t.id==='closeModal'||t.hasAttribute('data-close'))return closeModal();if(t.id==='backupBtn')return download('autonomy-map-backup.json',JSON.stringify(data,null,2),'application/json');if(t.id==='restoreBtn')return $('#restoreInput').click();if(t.id==='markdownBtn')return markdown();if(t.id==='printBtn')return window.print();if(t.id==='resetBtn'){if(confirm('Beispielkarte laden? Eigene lokale Daten werden ersetzt.')){data=normalize(sample);render()}return}if(t.id==='addActorBtn'){data.actors.push({id:uid('a'),name:'Neuer Akteur',values:[],perspective:'',agency:'',cells:{}});render();return editActor(data.actors.at(-1).id)}if(t.dataset.editOption)return editOption(t.dataset.editOption);if(t.dataset.editActor)return editActor(t.dataset.editActor);if(t.dataset.editCell)return editCell(t.dataset.editCell);if(t.dataset.delete-option){const id=t.dataset.deleteOption;if(confirm('Option löschen?')){data.options=data.options.filter(x=>x.id!==id);data.actors.forEach(a=>delete a.cells[id]);render()}return}if(t.dataset.deleteActor){if(confirm('Akteur löschen?')){data.actors=data.actors.filter(x=>x.id!==t.dataset.deleteActor);render()}return}if(t.dataset.deleteItem){const [a,o,j]=t.dataset.deleteItem.split('|');data.actors.find(x=>x.id===a).cells[o].splice(+j,1);render();return}if(t.dataset.saveOption){const o=data.options.find(x=>x.id===t.dataset.saveOption);o.title=$('#fTitle').value.trim()||'Neue Option';o.description=$('#fDesc').value.trim();closeModal();render();return}if(t.dataset.saveActor){const a=data.actors.find(x=>x.id===t.dataset.saveActor);a.name=$('#fName').value.trim()||'Neuer Akteur';a.values=$('#fValues').value.split(',').map(x=>x.trim()).filter(Boolean);a.perspective=$('#fPerspective').value.trim();a.agency=$('#fAgency').value.trim();closeModal();render();return}if(t.dataset.saveCell){const [a,o]=t.dataset.saveCell.split('|');const lines=$('#fItems').value.split('\n').map(s=>s.trim()).filter(Boolean);data.actors.find(x=>x.id===a).cells[o]=lines.map(s=>{const mark=['+','-','!'].includes(s[0])?s[0]:'!';return [mark,s[0]===mark?s.slice(1).trim():s]});closeModal();render()}});
+  $('#restoreInput').addEventListener('change',e=>{const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{data=normalize(JSON.parse(r.result));render();alert('JSON Backup erfolgreich importiert.')}catch{alert('Import fehlgeschlagen: Bitte eine gültige Autonomy-Map-JSON-Datei wählen.')}e.target.value=''};r.readAsText(file)});$('#judgement').addEventListener('input',e=>{data.judgement=e.target.value;save()});$('#modalBackdrop').addEventListener('click',e=>{if(e.target.id==='modalBackdrop')closeModal()});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});render();
+})();
+</script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"8607d2a720d14b038279025b2b5a82e5"}' crossorigin="anonymous"></script>
+</body></html>
