@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Autonomy Map</title>
+  <!-- Tailwind CSS für Styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Vue.js 3 -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen">
+
+<div id="app" class="p-6 max-w-7xl mx-auto">
+
+  <!-- 1. START-BILDSCHIRM -->
+  <div v-if="!currentRoom" class="max-w-md mx-auto mt-20 bg-white p-8 rounded-xl shadow border border-slate-200">
+    <h1 class="text-2xl font-bold mb-2 text-indigo-700">Autonomy Map</h1>
+    <p class="text-sm text-slate-500 mb-6">Strukturierung soziotechnischer Entscheidungen</p>
+
+    <button @click="createNewRoom" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg mb-4 transition">
+      + Neue Map erstellen
+    </button>
+
+    <div class="relative flex py-2 items-center">
+      <div class="flex-grow border-t border-slate-200"></div>
+      <span class="flex-shrink mx-4 text-xs uppercase text-slate-400">oder beitreten</span>
+      <div class="flex-grow border-t border-slate-200"></div>
+    </div>
+
+    <form @submit.prevent="joinRoom(inputRoomCode)" class="mt-4 flex gap-2">
+      <input v-model="inputRoomCode" placeholder="Raum-Code (z.B. MAP-123)" class="flex-1 border rounded-lg px-3 py-2 uppercase font-mono tracking-wider text-center" required>
+      <button type="submit" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg font-medium">Beitreten</button>
+    </form>
+  </div>
+
+  <!-- 2. HAUPT-ANSICHT -->
+  <div v-else class="space-y-6">
+    <!-- Header-Leiste -->
+    <div class="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+      <div class="flex-1 min-w-[280px]">
+        <input v-model="mapData.title" @input="broadcastChange" class="w-full text-xl font-bold border-b border-transparent hover:border-slate-300 focus:border-indigo-500 outline-none px-1" placeholder="Thema der Entscheidung...">
+        <div class="text-xs text-slate-500 mt-1 flex items-center gap-2">
+          Raum-Code: <span class="font-mono bg-slate-100 text-indigo-700 px-2 py-0.5 rounded font-bold">{{ currentRoom }}</span>
+          <span :class="wsConnected ? 'text-emerald-600' : 'text-amber-500'">● {{ wsConnected ? 'Live verbunden' : 'Verbindung getrennt' }}</span>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button @click="addOption" class="text-sm bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg border font-medium">+ Option</button>
+        <button @click="addActor" class="text-sm bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg border font-medium">+ Akteur</button>
+        <button @click="leaveRoom" class="text-sm text-slate-500 hover:text-slate-800 px-3 py-1.5">Verlassen</button>
+      </div>
+    </div>
+
+    <!-- Die Matrix / Tabelle -->
+    <div class="overflow-x-auto bg-white rounded-xl border border-slate-200 shadow-sm">
+      <table class="w-full border-collapse">
+        <thead>
+          <tr class="bg-slate-100/80 border-b border-slate-200">
+            <th class="p-4 text-left font-semibold text-slate-700 w-1/4">Entscheidungsoptionen</th>
+            
+            <!-- Akteurs-Spaltenköpfe -->
+            <th v-for="actor in mapData.actors" :key="actor.id" class="p-4 text-left border-l border-slate-200 min-w-[260px] align-top">
+              <div class="flex items-start justify-between gap-2">
+                <div class="cursor-pointer group flex-1" @click="openActorModal(actor)">
+                  <div class="font-semibold text-slate-800 group-hover:text-indigo-600 transition">
+                    {{ actor.name || 'Unbenannter Akteur' }}
+                  </div>
+                  
+                  <!-- Info Status Badge -->
+                  <div class="mt-1">
+                    <span v-if="isActorComplete(actor)" class="text-[11px] font-medium text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">ℹ️ Info vollständig</span>
+                    <span v-else class="text-[11px] font-medium text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">⚠️ Info unvollständig</span>
+                  </div>
+
+                  <!-- Werte-Tags unter dem Namen -->
+                  <div class="flex flex-wrap gap-1 mt-2" v-if="actor.values && actor.values.length > 0">
+                    <span v-for="(val, idx) in actor.values" :key="idx" class="text-[10px] bg-slate-100 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded-md">
+                      {{ val }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Akteur löschen Button -->
+                <button @click.stop="deleteActor(actor.id)" title="Akteur löschen" class="text-slate-300 hover:text-rose-500 transition p-1 text-sm font-bold">
+                  ✕
+                </button>
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="opt in mapData.options" :key="opt.id" class="border-b border-slate-200">
+            <!-- Options-Titel -->
+            <td class="p-4 align-top bg-slate-50/50 border-r border-slate-200">
+              <div class="flex items-start justify-between gap-2">
+                <div class="cursor-pointer flex-1 group" @click="openOptionModal(opt)">
+                  <div class="font-medium text-slate-800 group-hover:text-indigo-600 flex items-center gap-1.5">
+                    <span>{{ opt.title || 'Unbenannte Option' }}</span>
+                    <span class="text-xs text-indigo-500">ℹ️</span>
+                  </div>
+                  <p class="text-xs text-slate-500 mt-1 line-clamp-3" v-if="opt.implementation">
+                    {{ opt.implementation }}
+                  </p>
+                  <span v-else class="text-[11px] text-amber-600 mt-1 inline-block">Umsetzung noch nicht hinterlegt</span>
+                </div>
+
+                <!-- Option löschen Button -->
+                <button @click.stop="deleteOption(opt.id)" title="Option löschen" class="text-slate-300 hover:text-rose-500 transition p-1 text-sm font-bold">
+                  ✕
+                </button>
+              </div>
+            </td>
+
+            <!-- Matrix-Zellen (Bullet Points) -->
+            <td v-for="actor in mapData.actors" :key="actor.id" class="p-3 border-l border-slate-200 align-top space-y-2">
+              <!-- Liste existierender Bullet Points -->
+              <div class="space-y-1.5">
+                <div v-for="(bp, bpIdx) in getCellPoints(opt.id, actor.id)" :key="bpIdx" class="flex items-start gap-1.5 group/item bg-slate-50/80 p-1.5 rounded border border-slate-100">
+                  <!-- Symbol Badge (Klick ändert das Symbol) -->
+                  <button @click="cycleBulletSymbol(opt.id, actor.id, bpIdx)" 
+                    :class="[
+                      'w-5 h-5 rounded flex items-center justify-center text-xs font-bold shrink-0 text-white transition',
+                      bp.symbol === '+' ? 'bg-emerald-600' : bp.symbol === '-' ? 'bg-amber-500' : 'bg-rose-600'
+                    ]"
+                    title="Klicken zum Ändern (+ / - / !)">
+                    {{ bp.symbol }}
+                  </button>
+                  
+                  <!-- Stichpunkt-Text -->
+                  <input 
+                    :value="bp.text" 
+                    @input="updateBulletText(opt.id, actor.id, bpIdx, $event.target.value)"
+                    placeholder="Stichpunkt eingeben..." 
+                    class="w-full text-xs bg-transparent border-b border-transparent hover:border-slate-300 focus:border-indigo-500 outline-none px-1 py-0.5">
+                  
+                  <!-- Bullet Point löschen -->
+                  <button @click="deleteBulletPoint(opt.id, actor.id, bpIdx)" class="text-slate-300 hover:text-rose-500 text-xs px-1 opacity-0 group-hover/item:opacity-100 transition">
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              <!-- Neuer Stichpunkt Buttons (+ / - / !) -->
+              <div class="flex items-center gap-1 pt-1">
+                <span class="text-[10px] text-slate-400 mr-1">+ Punkt:</span>
+                <button @click="addBulletPoint(opt.id, actor.id, '+')" class="w-5 h-5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded text-xs font-bold flex items-center justify-center transition" title="Vorteil hinzufügen">+</button>
+                <button @click="addBulletPoint(opt.id, actor.id, '-')" class="w-5 h-5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-300 rounded text-xs font-bold flex items-center justify-center transition" title="Nachteil hinzufügen">-</button>
+                <button @click="addBulletPoint(opt.id, actor.id, '!')" class="w-5 h-5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded text-xs font-bold flex items-center justify-center transition" title="Ausschlusskriterium hinzufügen">!</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Finales Urteil -->
+    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-2">
+      <h2 class="text-lg font-bold text-slate-800">Finales Urteil & Begründung</h2>
+      <textarea 
+        v-model="mapData.judgment" 
+        @input="broadcastChange"
+        placeholder="Begründe hier dein finales Urteil..." 
+        class="w-full h-32 p-3 border rounded-lg focus:border-indigo-500 outline-none text-sm">
+      </textarea>
+    </div>
+  </div>
+
+  <!-- MODAL: Akteur bearbeiten -->
+  <div v-if="activeActor" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-xl max-w-lg w-full p-6 space-y-4 shadow-xl">
+      <h3 class="text-lg font-bold text-slate-800">Akteursdetails bearbeiten</h3>
+      
+      <div>
+        <label class="text-xs font-semibold uppercase text-slate-500">Name des Akteurs</label>
+        <input v-model="activeActor.name" @input="broadcastChange" class="w-full border p-2 rounded mt-1 text-sm outline-none focus:border-indigo-500">
+      </div>
+
+      <div>
+        <label class="text-xs font-semibold uppercase text-slate-500">Perspektive</label>
+        <textarea v-model="activeActor.perspective" @input="broadcastChange" class="w-full border p-2 rounded mt-1 h-20 text-sm outline-none focus:border-indigo-500" placeholder="Wie bewertet der Akteur die Gesamtsituation?"></textarea>
+      </div>
+
+      <div>
+        <label class="text-xs font-semibold uppercase text-slate-500">Handlungsspielraum</label>
+        <textarea v-model="activeActor.agency" @input="broadcastChange" class="w-full border p-2 rounded mt-1 h-20 text-sm outline-none focus:border-indigo-500" placeholder="Welche Macht/Entscheidungsoptionen besitzt dieser Akteur?"></textarea>
+      </div>
+
+      <!-- Verfolgte Werte (Liste einzelner Begriffe mit +) -->
+      <div>
+        <label class="text-xs font-semibold uppercase text-slate-500">Verfolgte Werte (einzelne Begriffe)</label>
+        <div class="flex flex-wrap gap-2 mt-2">
+          <div v-for="(val, idx) in (activeActor.values || [])" :key="idx" class="flex items-center gap-1 bg-slate-100 border border-slate-200 px-2 py-1 rounded text-sm">
+            <span>{{ val }}</span>
+            <button @click="removeActorValue(idx)" class="text-slate-400 hover:text-rose-500 font-bold ml-1 text-xs">✕</button>
+          </div>
+        </div>
+        <form @submit.prevent="addActorValue" class="flex gap-2 mt-2">
+          <input v-model="newActorValue" placeholder="Neuer Wert (z. B. Datenschutz)" class="flex-1 border p-1.5 rounded text-sm outline-none focus:border-indigo-500">
+          <button type="submit" class="bg-slate-100 hover:bg-slate-200 border px-3 py-1.5 rounded text-sm font-semibold">+ Wert</button>
+        </form>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-4 border-t">
+        <button @click="closeModal" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Fertig</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Option bearbeiten -->
+  <div v-if="activeOption" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-xl max-w-lg w-full p-6 space-y-4 shadow-xl">
+      <h3 class="text-lg font-bold text-slate-800">Option bearbeiten</h3>
+      
+      <div>
+        <label class="text-xs font-semibold uppercase text-slate-500">Titel der Option</label>
+        <input v-model="activeOption.title" @input="broadcastChange" class="w-full border p-2 rounded mt-1 text-sm outline-none focus:border-indigo-500">
+      </div>
+
+      <div>
+        <label class="text-xs font-semibold uppercase text-slate-500">Beschreibung der Umsetzung</label>
+        <textarea v-model="activeOption.implementation" @input="broadcastChange" class="w-full border p-2 rounded mt-1 h-32 text-sm outline-none focus:border-indigo-500" placeholder="Wie wird die Option technisch und organisatorisch konkret realisiert?"></textarea>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-4 border-t">
+        <button @click="closeModal" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Fertig</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const { createApp } = Vue;
+
+  createApp({
+    data() {
+      return {
+        currentRoom: null,
+        inputRoomCode: '',
+        ws: null,
+        wsConnected: false,
+        activeActor: null,
+        activeOption: null,
+        newActorValue: '',
+        mapData: {
+          title: '',
+          actors: [],
+          options: [],
+          matrix: {},
+          judgment: ''
+        }
+      }
+    },
+    methods: {
+      async createNewRoom() {
+        const res = await fetch('/api/new-room');
+        const data = await res.json();
+        this.joinRoom(data.room_id);
+      },
+      joinRoom(code) {
+        this.currentRoom = code.toUpperCase();
+        this.connectWebSocket();
+      },
+      connectWebSocket() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        this.ws = new WebSocket(`${protocol}//${window.location.host}/ws/${this.currentRoom}`);
+
+        this.ws.onopen = () => { this.wsConnected = true; };
+        this.ws.onclose = () => { this.wsConnected = false; };
+        this.ws.onmessage = (event) => {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'INIT_STATE' || msg.type === 'UPDATE_STATE') {
+            this.mapData = msg.data || msg.payload;
+          }
+        };
+      },
+      broadcastChange() {
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+          this.ws.send(JSON.stringify({
+            type: 'UPDATE_STATE',
+            payload: this.mapData
+          }));
+        }
+      },
+      
+      // Validierung Akteurs-Vollständigkeit
+      isActorComplete(actor) {
+        const hasPerspective = actor.perspective && actor.perspective.trim().length > 0;
+        const hasAgency = actor.agency && actor.agency.trim().length > 0;
+        const hasValues = actor.values && actor.values.length > 0;
+        return hasPerspective && hasAgency && hasValues;
+      },
+
+      // Akteure & Optionen verwalten
+      addActor() {
+        const id = 'act_' + Date.now();
+        this.mapData.actors.push({ id, name: 'Neuer Akteur', perspective: '', agency: '', values: [] });
+        this.broadcastChange();
+      },
+      deleteActor(actorId) {
+        if (confirm('Möchtest du diesen Akteur und alle zugehörigen Spalteneinträge wirklich löschen?')) {
+          this.mapData.actors = this.mapData.actors.filter(a => a.id !== actorId);
+          // Zugehörige Matrixeinträge bereinigen
+          Object.keys(this.mapData.matrix).forEach(key => {
+            if (key.endsWith(`_${actorId}`)) delete this.mapData.matrix[key];
+          });
+          this.broadcastChange();
+        }
+      },
+      addOption() {
+        const id = 'opt_' + Date.now();
+        this.mapData.options.push({ id, title: 'Neue Option', implementation: '' });
+        this.broadcastChange();
+      },
+      deleteOption(optionId) {
+        if (confirm('Möchtest du diese Option und alle zugehörigen Zeileneinträge wirklich löschen?')) {
+          this.mapData.options = this.mapData.options.filter(o => o.id !== optionId);
+          // Zugehörige Matrixeinträge bereinigen
+          Object.keys(this.mapData.matrix).forEach(key => {
+            if (key.startsWith(`${optionId}_`)) delete this.mapData.matrix[key];
+          });
+          this.broadcastChange();
+        }
+      },
+
+      // Werte-Verwaltung im Akteurs-Modal
+      addActorValue() {
+        if (!this.newActorValue.trim()) return;
+        if (!this.activeActor.values) this.activeActor.values = [];
+        this.activeActor.values.push(this.newActorValue.trim());
+        this.newActorValue = '';
+        this.broadcastChange();
+      },
+      removeActorValue(idx) {
+        this.activeActor.values.splice(idx, 1);
+        this.broadcastChange();
+      },
+
+      // Bullet-Points in den Zellen
+      getCellPoints(optId, actId) {
+        const key = `${optId}_${actId}`;
+        if (!this.mapData.matrix[key]) this.mapData.matrix[key] = [];
+        return this.mapData.matrix[key];
+      },
+      addBulletPoint(optId, actId, symbol) {
+        const key = `${optId}_${actId}`;
+        if (!this.mapData.matrix[key]) this.mapData.matrix[key] = [];
+        this.mapData.matrix[key].push({ symbol: symbol, text: '' });
+        this.broadcastChange();
+      },
+      updateBulletText(optId, actId, idx, text) {
+        const key = `${optId}_${actId}`;
+        if (this.mapData.matrix[key] && this.mapData.matrix[key][idx]) {
+          this.mapData.matrix[key][idx].text = text;
+          this.broadcastChange();
+        }
+      },
+      cycleBulletSymbol(optId, actId, idx) {
+        const key = `${optId}_${actId}`;
+        const symbols = ['+', '-', '!'];
+        const currentSym = this.mapData.matrix[key][idx].symbol;
+        const nextSym = symbols[(symbols.indexOf(currentSym) + 1) % symbols.length];
+        this.mapData.matrix[key][idx].symbol = nextSym;
+        this.broadcastChange();
+      },
+      deleteBulletPoint(optId, actId, idx) {
+        const key = `${optId}_${actId}`;
+        this.mapData.matrix[key].splice(idx, 1);
+        this.broadcastChange();
+      },
+
+      // Modal Steuerung
+      openActorModal(actor) { 
+        if (!actor.values) actor.values = [];
+        this.activeActor = actor; 
+      },
+      openOptionModal(opt) { this.activeOption = opt; },
+      closeModal() {
+        this.activeActor = null;
+        this.activeOption = null;
+        this.broadcastChange();
+      },
+      leaveRoom() {
+        if (this.ws) this.ws.close();
+        this.currentRoom = null;
+      }
+    }
+  }).mount('#app');
+</script>
+</body>
+</html>
